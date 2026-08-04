@@ -14,7 +14,7 @@ export const createPayslip = async (req,res) => {
             return res.status(400).json({error:"Missing required fields"})
         }
 
-        const netSalary = Number(basicSalary) + Number(allowances || 0) - Number(deductions || 0);
+       netSalary = Number(basicSalary) + Number(allowances || 0) - Number(deductions || 0);
         const payslip = await Payslip.create({
             employeeId,
             month:Number(month),
