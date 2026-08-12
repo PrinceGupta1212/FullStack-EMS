@@ -8,18 +8,19 @@ import Payslip from "../models/Payslip.js";
 //POST /api/payslips
 export const createPayslip = async (req,res) => {
     try {
-        const {employeeId,month,year,basicSalary,allowances,deductions,netSalary} = req.body;
+        const {employeeId,month,year,basicSalary,allowances,deductions} = req.body;
 
         if(!employeeId || !month || !year || !basicSalary){
             return res.status(400).json({error:"Missing required fields"})
         }
 
-       netSalary = Number(basicSalary) + Number(allowances || 0) - Number(deductions || 0);
+        const netSalary = Number(basicSalary) + Number(allowances || 0) - Number(deductions || 0);
         const payslip = await Payslip.create({
             employeeId,
             month:Number(month),
             year:Number(year),
-            basicSalary:Number(allowances || 0),
+            basicSalary:Number(basicSalary || 0),
+            allowances:Number(allowances || 0),
             deductions:Number(deductions || 0),
             netSalary,
 
@@ -42,7 +43,7 @@ export const getPayslip = async (req,res) => {
             const obj = p.toObject();
             return {
                 ...obj,
-                id:obj._idtoString(),
+                id:obj._id.toString(),
                 employee:obj.employeeId,
                 employeeId : obj.employeeId?._id?.toString(),
 
@@ -52,7 +53,7 @@ export const getPayslip = async (req,res) => {
         }else{
             const employee = await Employee.findOne({userId:session.userId});
             if(!employee) return res.status(404).json({error:"Not Found"});
-            const payslips = await Payslip.find({employeeId:employeeId._id}).sort({createdAt:-1});
+            const payslips = await Payslip.find({employeeId:employee._id}).sort({createdAt:-1});
             return res.json({data:payslips})
         }
     } catch (error) {

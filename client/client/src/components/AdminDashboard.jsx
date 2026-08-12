@@ -2,17 +2,16 @@ import React from 'react'
 import { Building2Icon, CalendarIcon, FileTextIcon, UserIcon }from 'lucide-react'
 
 const AdminDashboard = ({data}) => {
-
     const stats = [
          {
             icon:UserIcon,
-            value:data.totalEmployees,
+            value:data.totalEmployees ?? 0,
             label:"Total Employees",
             description:"Active Workforce"
         },
          {
             icon:Building2Icon,
-            value:data.totalDepartments,
+            value:data.totalDepartments ?? 0,
             label:"Departments",
             description:"Organization Units"
         },

@@ -1,5 +1,7 @@
 import { Loader2, Save, User } from 'lucide-react';
 import React, { useState } from 'react'
+import api from '../api/axios'
+import toast from 'react-hot-toast'
 
 const ProfileForm = ({initialData,onSuccess}) => {
   
@@ -8,6 +10,19 @@ const ProfileForm = ({initialData,onSuccess}) => {
   const [message,setMessage] = useState("");
   const handleSubmit = async (e) => {
     e.preventDefault()
+    setLoading(true)
+    setError('')
+    try {
+      const formData = new FormData(e.currentTarget)
+      await api.post('/profile', { bio: formData.get('bio') })
+      setMessage('Profile updated successfully')
+      await onSuccess()
+    } catch (err) {
+      setError(err.response?.data?.error || 'Failed to update profile')
+      toast.error(err.response?.data?.error || 'Failed to update profile')
+    } finally {
+      setLoading(false)
+    }
   }
   
     return (
@@ -27,8 +42,8 @@ const ProfileForm = ({initialData,onSuccess}) => {
             {message}
         </div>
     )}
-    <div className='sapce-y-5'>
-        <div className='grid grid-cols-1 sm:grid-cols-2 gp4'>
+    <div className='space-y-5'>
+        <div className='grid grid-cols-1 sm:grid-cols-2 gap-4'>
             <div>
                 <label className='block text-sm font-medium text-slate-700 mb-2'>Name</label>
                 <input disabled value={`${initialData.firstName} ${initialData.lastName}`} className='bg-slate-50 text-slate-400 cursor-not-allowed'/>
@@ -43,7 +58,7 @@ const ProfileForm = ({initialData,onSuccess}) => {
             </div>
         </div>
         <div>
-            <label className='block text-sm font-medium text-sl ate-700 mb-2'>Bio</label>
+            <label className='block text-sm font-medium text-slate-700 mb-2'>Bio</label>
             <textarea disabled={initialData.isDeleted} name="bio" defaultValue={initialData.bio || ""} placeholder='Write a brief bio.....' className={`resize-none ${initialData.isDeleted ? "bg-slate-50 text-slate-400 cursor-not-allowed " : ""}`}/>
             <p className='text-xs text-slate-400 mt-1.5'>This will be displayed on your profile.</p>
         </div>

@@ -1,9 +1,10 @@
 import React, { useEffect, useState } from 'react'
-import { dummyProfileData } from '../assets/assets'
 import Loading from '../components/Loading'
 import { Lock  } from 'lucide-react'
 import ProfileForm from '../components/ProfileForm'
 import ChangePasswardModal from '../components/ChangePasswardModal'
+import api from '../api/axios'
+import toast from 'react-hot-toast'
 
 const Settings = () => {
 
@@ -11,10 +12,14 @@ const Settings = () => {
   const [loading,setLoading] = useState(true)
   const [showPasswordModal,setShowPasswordModal] = useState(false)
   const fetchProfile = async () => {
-    setProfile(dummyProfileData)
-    setTimeout(() => {
+    try {
+      const { data } = await api.get('/profile')
+      setProfile(data)
+    } catch (error) {
+      toast.error(error.response?.data?.error || 'Failed to load profile')
+    } finally {
       setLoading(false)
-    },1000)
+    }
   }
 
   useEffect(() => {

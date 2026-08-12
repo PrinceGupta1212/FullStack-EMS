@@ -1,7 +1,9 @@
 import React, { useState } from 'react'
 import LoginLeftSide from './LoginLeftSide'
-import { Link } from 'react-router-dom'
+import { Link, useNavigate } from 'react-router-dom'
 import { ArrowLeftIcon, EyeIcon, EyeOffIcon, Loader2Icon } from 'lucide-react'
+import { useAuth } from '../context/AuthContext'
+import toast from 'react-hot-toast'
 
 const LoginForm = ({role,title,subtitle}) => {
 
@@ -10,11 +12,35 @@ const [password,setPassword] = useState("")
 const [showPassword,setShowPassword] = useState(false)
 const [error,setError] = useState("")
 const [loading,setLoading] = useState(false)
+const {login} = useAuth()
+const navigate = useNavigate()
 
 const handleSubmit = async (e) => {
   e.preventDefault();
-}
 
+  setLoading(true);
+  setError("");
+
+  try {
+    await login({
+      email,
+      password,
+      role_type: role,
+    });
+
+    setEmail("");
+    setPassword("");
+    navigate('/dashboard');
+
+  } catch (error) {
+    const message = error.response?.data?.error || error.message || "Login Failed";
+    setError(message);
+    toast.error(message);
+  }
+  finally {
+    setLoading(false);
+  }
+}
 
   return (
     <div className='min-h-screen flex flex-col md:flex-row'>
@@ -47,7 +73,7 @@ const handleSubmit = async (e) => {
          <div>
           <label className='block text-sm font-medium text-slate-700 mb-2'>Passward</label>
           <div className='relative'>
- <input type={showPassword ? "text" : "password"} onChange={(e) => setPassword(e.target.value)} required className='pr-11' placeholder='........'/>
+ <input type={showPassword ? "text" : "password"} onChange={(e) => setPassword(e.target.value)} value={password} required className='pr-11' placeholder='........'/>
         <button type='button'className='absolute right-3 top-1/2 -translate-y-1/2 text-slate-600 transition-colors' onClick={() => setShowPassword(!showPassword)}>
           {showPassword ? <EyeOffIcon size={18}/>
           : <EyeIcon size={18}/>}

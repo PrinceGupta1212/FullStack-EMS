@@ -1,6 +1,20 @@
 import { inngest } from "../inngest/index.js";
 import Employee from "../models/Employee.js";
+import LeaveApplication from "../models/LeaveApplication.js";
 
+const findEmployeeForSession = async (session) => {
+    let employee = await Employee.findOne({ userId: session.userId });
+    if (!employee && session.email) {
+        employee = await Employee.findOne({
+            email: session.email.trim().toLowerCase(),
+        });
+        if (employee) {
+            employee.userId = session.userId;
+            await employee.save();
+        }
+    }
+    return employee;
+};
 
 //Create Leave
 //post /api/leaves
@@ -10,7 +24,7 @@ import Employee from "../models/Employee.js";
 export const createLeave = async (req, res) =>{
     try{
         const session = req.session;
-        const employee = await Employee.findOne({userId:session.userId})
+        const employee = await findEmployeeForSession(session)
         if(!employee) return res.status(404).json({error:"Employee not found"});
         if(employee.isDeleted){
             return res.status(403).json({error:"Your account is deactivated.You cannot apply for leave"})
@@ -35,13 +49,13 @@ export const createLeave = async (req, res) =>{
             type,
             startDate:new Date(startDate),
             endDate:new Date(endDate),
-            reson,
+            reason,
             status:"PENDING"
         })
 
         await inngest.send({
             name:"leave/pending",
-            data:{LeaveApplicationId : leave._id,
+            data:{leaveApplicationId : leave._id,
             }
         })
 
@@ -59,7 +73,7 @@ export const getLeaves = async (req, res) =>{
         const session = req.session;
         const isAdmin = session.role == "ADMIN"
         if(isAdmin){
-            const status = req.quer.status;
+            const status = req.query.status;
             const where = status ? {status} : {};
             const leaves = await LeaveApplication.find(where).populate("employeeId").sort({createdAt:-1});
             const data = leaves.map((l) =>{
@@ -73,7 +87,7 @@ export const getLeaves = async (req, res) =>{
             })
             return res.json({data})
         }else{
-            const employee = await Employee.findOne({userId:session.userId});
+            const employee = await findEmployeeForSession(session);
             if(!employee) return res.status(404).json({error:"Employee not found"});
             const leaves = await LeaveApplication.find({employeeId:employee._id}).sort({createdAt:-1});
             return res.json({
@@ -94,7 +108,12 @@ export const updateLeaveStatus = async (req, res) =>{
         if(!["APPROVED","REJECTED","PENDING"].includes(status)){
             return res.status(400).json({error:"Invalid status"});
         }
-        const leave = await LeaveApplication.findByIdAndUpdate(req.params.id,{status},{returnDocument :"after"})
+        const leave = await LeaveApplication.findByIdAndUpdate(
+            req.params.id,
+            {status},
+            {new: true, runValidators: true}
+        )
+        if (!leave) return res.status(404).json({error:"Leave application not found"});
         return res.json({success:true,data:leave})
         
     } catch (error) {

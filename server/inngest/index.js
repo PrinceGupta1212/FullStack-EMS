@@ -20,11 +20,18 @@ const autoCheckOut = inngest.createFunction(
     //get employee data
     const employee = await Employee.findById(employeeId)
 
-    //send remainder email
-    await sendEmail({
-      to:employee.email,
-      subject:"Attendance check-out reminder",
-      body:`<div style="max-width: 600px;">
+    if (!employee?.email) {
+      throw new Error(`Employee ${employeeId} was not found or has no email address`);
+    }
+
+    // Keep the side effect in a durable, retriable Inngest step.  Calling the
+    // SMTP server directly in a workflow handler can result in missed or
+    // duplicated mail when Inngest replays the function after a sleep.
+    await step.run("send-check-out-reminder", () =>
+      sendEmail({
+        to: employee.email.trim(),
+        subject:"Attendance check-out reminder",
+        body:`<div style="max-width: 600px;">
                     <h2>Hi ${employee.firstName}, 👋</h2>
                     <p style="font-size: 16px;">You have a check-in in ${employee.department} today:</p>
                     <p style="font-size: 18px; font-weight: bold; color: #007bff; margin: 8px 0;">${attendance?.checkIn?.toLocaleTimeString()}</p>
@@ -34,7 +41,8 @@ const autoCheckOut = inngest.createFunction(
                     <p style="font-size: 16px;">Best Regards,</p>
                     <p style="font-size: 16px;">EMS</p>
                 </div>`
-    })
+      })
+    );
 
 
     //after 10 hours , mark attendance as checked out with status "LATER"
@@ -64,11 +72,16 @@ const leaveApplicationRemainder = inngest.createFunction(
     const leaveApplication = await LeaveApplication.findById(leaveApplicationId)
     if(leaveApplication?.status === "PENDING"){
         const employee = await Employee.findById(leaveApplication.employeeId)
+        if (!employee || !process.env.ADMIN_EMAIL) {
+          throw new Error("Cannot send leave reminder: employee or ADMIN_EMAIL is missing");
+        }
+
         //send remainder email to admin to take action on leave application
-        await sendEmail({
-          to:process.env.ADMIN_EMAIL,
-          subject:`Leave Application Reminder`,
-          body:` <div style="max-width: 600px;">
+        await step.run("send-leave-application-reminder", () =>
+          sendEmail({
+            to: process.env.ADMIN_EMAIL.trim(),
+            subject:`Leave Application Reminder`,
+            body:` <div style="max-width: 600px;">
                 <h2>Hi Admin, 👋</h2>
                 <p style="font-size: 16px;">You have a leave application in ${employee.department} today:</p>
                 <p style="font-size: 18px; font-weight: bold; color: #007bff; margin: 8px 0;">${leaveApplication?.startDate?.toLocaleDateString()}</p>
@@ -77,7 +90,8 @@ const leaveApplicationRemainder = inngest.createFunction(
                 <p style="font-size: 16px;">Best Regards,</p>
                 <p style="font-size: 16px;">EMS</p>
             </div> `
-        })
+          })
+        );
     }
   }
   
@@ -143,7 +157,7 @@ const attendanceRemainderCron = inngest.createFunction(
         const attendences = await Attendance.find({
           date: {
             $gte: new Date(today.startUTC),
-            $lte: new Date(today.endUTC),
+            $lt: new Date(today.endUTC),
           },
         }).lean();
 
@@ -159,12 +173,14 @@ const attendanceRemainderCron = inngest.createFunction(
     );
 
     //step 6 send reminder emails
-    if (absentEmployees.length > 0) {
-      await step.run("send-reminder-emails", async () => {
-        const emailPromises = absentEmployees.map(async (emp) => {
-          //send email
-         await  sendEmail({
-            to: emp.email,
+    const employeesWithEmail = absentEmployees.filter((emp) => emp.email?.trim());
+
+    // One durable step per recipient means a temporary SMTP failure retries
+    // only that employee's email instead of failing the entire reminder batch.
+    for (const emp of employeesWithEmail) {
+      await step.run(`send-attendance-reminder-${emp._id}`, () =>
+        sendEmail({
+            to: emp.email.trim(),
             subject:`Attendance Reminder - Please Mark Your Attendance`,
             body:` <div style="max-width: 600px; font-family: Arial, sans-serif;">
                                 <h2>Hi ${emp.firstName}, 👋</h2>
@@ -177,11 +193,8 @@ const attendanceRemainderCron = inngest.createFunction(
                                 <p style="font-size: 16px;">Best Regards,</p>
                                 <p style="font-size: 16px;"><strong>QuickEMS</strong></p>
                             </div>`
-          })
-        });
-
-        await Promise.all(emailPromises);
-      });
+        })
+      );
     }
 
     return {
@@ -189,6 +202,7 @@ const attendanceRemainderCron = inngest.createFunction(
       onLeave: onLeaveIds.length,
       checkIn: checkInIds.length,
       absent: absentEmployees.length,
+      skippedWithoutEmail: absentEmployees.length - employeesWithEmail.length,
     };
   }
 );

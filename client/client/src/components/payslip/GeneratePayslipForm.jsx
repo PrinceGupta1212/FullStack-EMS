@@ -1,5 +1,7 @@
 import {Loader2, Plus, X } from 'lucide-react'
 import React, { useState } from 'react'
+import api from '../../api/axios'
+import toast from 'react-hot-toast'
 
 const GeneratePayslipForm = ({employees, onSuccess}) => {
 
@@ -13,7 +15,19 @@ const GeneratePayslipForm = ({employees, onSuccess}) => {
     )
 
     const handleSubmit = async (e) => {
-        e.preventDefault
+        e.preventDefault()
+        setLoading(true)
+        try {
+            const formData = new FormData(e.currentTarget)
+            await api.post('/payslips', Object.fromEntries(formData))
+            toast.success('Payslip generated')
+            setIsOpen(false)
+            await onSuccess()
+        } catch (error) {
+            toast.error(error.response?.data?.error || 'Failed to generate payslip')
+        } finally {
+            setLoading(false)
+        }
     }
 
 
@@ -33,7 +47,7 @@ const GeneratePayslipForm = ({employees, onSuccess}) => {
                     <select name="employeeId" required>
                         {employees.map((e) =>(
                             <option value={e.id} key={e.id}>
-                                {e.firstname} {e.lastName} ({e.position})
+                                {e.firstName} {e.lastName} ({e.position})
                                 </option>
                         ))}
                     </select>
@@ -44,7 +58,7 @@ const GeneratePayslipForm = ({employees, onSuccess}) => {
                            <label className='block text-sm font-medium text-slate-700 mb-2'>Month</label>
                            <select name="month" >
                             {Array.from({length:12},(_,i)=> i+1).map((m) =>(
-                                <option value="m" key={m}>  {m}</option>
+                                <option value={m} key={m}>  {m}</option>
                               
                             ) )}
                            </select>
@@ -79,7 +93,7 @@ const GeneratePayslipForm = ({employees, onSuccess}) => {
                     <button onClick={() => setIsOpen(false)} type='button' className='btn-secondary'>
                         Cancel
                     </button>
-                     <button onClick={() => setIsOpen(false)} disabled={loading} type='submit' className='btn-primary flex items-center'>
+                     <button disabled={loading} type='submit' className='btn-primary flex items-center'>
                         {loading && <Loader2 className='w-4 h-4 mr-2 animate-spin' />}
                         Generate
                     </button>
