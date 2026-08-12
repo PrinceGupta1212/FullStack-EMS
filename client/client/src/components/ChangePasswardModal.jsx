@@ -1,5 +1,7 @@
 import { Loader2Icon, LockIcon, X } from 'lucide-react'
 import React, { useState } from 'react'
+import api from '../api/axios'
+import toast from 'react-hot-toast'
 
 const ChangePasswardModal = ({open,onClose}) => {
 
@@ -7,6 +9,26 @@ const ChangePasswardModal = ({open,onClose}) => {
     const [message,setMessage] = useState({type :"",text:""})
     const handleSubmit = async (e) => {
         e.preventDefault()
+        setLoading(true)
+        setMessage({ type: '', text: '' })
+        try {
+            const formData = new FormData(e.currentTarget)
+            if (formData.get('newPassword') !== formData.get('confirmPassword')) {
+                setMessage({ type: 'error', text: 'New passwords do not match' })
+                return
+            }
+            await api.post('/auth/change-password', {
+                currentPassword: formData.get('currentPassword'),
+                newPassword: formData.get('newPassword'),
+            })
+            setMessage({ type: 'success', text: 'Password updated successfully' })
+            toast.success('Password updated successfully')
+            e.currentTarget.reset()
+        } catch (error) {
+            setMessage({ type: 'error', text: error.response?.data?.error || 'Failed to update password' })
+        } finally {
+            setLoading(false)
+        }
     }
     if(!open) return null
 
@@ -24,17 +46,21 @@ const ChangePasswardModal = ({open,onClose}) => {
         <form className='p-6 space-y-5 ' onSubmit={handleSubmit}>
             {message.text && (
                 <div className={`p-3 rounded-xl text-sm flex items-center gap-3 ${message.type === 'success' ? "bg-emerald-50 text-emerald-700 border border-emerald-200 " : "bg-rose-50 text-rose-700 border border-rose-200"}`}>
-                    <div className={`w-1.5 h-1.5 rounded-full mt-1.5 shrink-0 ${message.type === "Success" ? "bg-emerald-500" : "bg-rose-500"}`} />
+                    <div className={`w-1.5 h-1.5 rounded-full mt-1.5 shrink-0 ${message.type === "success" ? "bg-emerald-500" : "bg-rose-500"}`} />
                     {message.text}
                 </div>
             )}
             <div>
                 <label className='block text-sm font-medium text-slate-700 mb-2'>Current Password</label>
-                <input type="password" name='currentpassword' required />
+                <input type="password" name='currentPassword' required />
             </div>
               <div>
                 <label className='block text-sm font-medium text-slate-700 mb-2'>New password</label>
-                <input type="password" name='newpassword' required />
+                <input type="password" name='newPassword' minLength="6" required />
+            </div>
+            <div>
+                <label className='block text-sm font-medium text-slate-700 mb-2'>Confirm new password</label>
+                <input type="password" name='confirmPassword' minLength="6" required />
             </div>
             <div className='flex gap-3 pt-2'>
                 <button type='button' onClick={onClose} className='btn-secondary flex-1'>

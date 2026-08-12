@@ -1,9 +1,9 @@
 import React, { useCallback, useEffect, useState } from 'react'
-import { dummyEmployeeDashboardData, dummyEmployeeData , DEPARTMENTS} from '../assets/assets'
+import { DEPARTMENTS} from '../assets/assets'
 import { Plus, Search, X } from 'lucide-react'
 import EmployeeCard from '../components/EmployeeCard'
 import EmployeeForm from '../components/EmployeeForm'
-
+import api from '../api/axios'
 
 const Employees = () => {
 
@@ -16,11 +16,15 @@ const Employees = () => {
   const [showCreateModal,setshowCreateModal] = useState(false)
 
   const fetchEmployees = useCallback(async () => {
-    setLoading(true)
-    setEmployees(  dummyEmployeeData.filter((emp) => { return selectDept ? emp.department === selectDept : emp }))
-    setTimeout(() => {
-      setLoading(false)
-    },1000)
+   try {
+    const url = selectDept ? `/employees?department=${encodeURIComponent(selectDept)}`: "/employees";
+    const res = await api.get(url)
+    setEmployees(res.data)
+   } catch (error) {
+    console.error("failed to fetch employee")
+   }finally{
+    setLoading(false)
+   }
   },[selectDept])
   useEffect(() => {
     fetchEmployees();

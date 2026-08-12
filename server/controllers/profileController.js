@@ -13,7 +13,7 @@ export const getProfile  = async (req,res) => {
             //Authenticate user is not an employee - return admin profile
             return res.json({
                 firstName:"Admin",
-                lastname:"",
+                lastName:"",
                 email:session.email,
             })
         }

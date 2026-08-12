@@ -15,7 +15,13 @@ async function registerAdmin(){
         await connectDB()
         const existingAdmin = await User.findOne({email:process.env.ADMIN_EMAIL});
         if(existingAdmin){
-            console.log("User already exists as role",existingAdmin.role);
+            if (existingAdmin.role !== "ADMIN") {
+                existingAdmin.role = "ADMIN";
+                await existingAdmin.save();
+                console.log("Existing user promoted to ADMIN");
+            } else {
+                console.log("User already exists as ADMIN");
+            }
             process.exit(0);
         }
         const hashedPassword  = await bcrypt.hash(TemporaryPassword,10)
