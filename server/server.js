@@ -35,4 +35,12 @@ app.use("/api/inngest", serve({ client: inngest, functions }));
 
 
 await connectDB()
-app.listen(PORT,()=> console.log(`server running on port ${PORT}`))
+
+// Vercel imports the Express application as a serverless function.  Starting
+// a listener there prevents Vercel from handling requests correctly; retain
+// the listener only for local development.
+if (!process.env.VERCEL) {
+  app.listen(PORT, () => console.log(`server running on port ${PORT}`));
+}
+
+export default app;
