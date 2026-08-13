@@ -50,8 +50,8 @@ export const  clockInOut = async (req,res) => {
             //compute working hours and day type
             const workingHours = parseFloat(diffHours.toFixed(2))
             let dayType = "Half Day";
-            if(workingHours >= 8 ) dayType = "Full day";
-            else if (workingHours >= 6) dayType = "Three Quater Day";
+            if(workingHours >= 8 ) dayType = "Full Day";
+            else if (workingHours >= 6) dayType = "Three Quarter Day";
             else if (workingHours >= 4) dayType = "Half Day";
             else dayType = "Short Day";
             existing.workingHours = workingHours;

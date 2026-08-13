@@ -7,16 +7,25 @@ const handleUnauthorized = () => {
     try { window.location.replace('/login') } catch (e) { /* ignore */ }
 }
 
-// Keep the public API separate from VITE_BASE_URL.  The latter is used for
-// local development and an old Vercel value could otherwise make production
-// builds call a protected preview deployment.
-const configuredBaseUrl = import.meta.env.PROD
-    ? import.meta.env.VITE_PRODUCTION_API_URL
-    : import.meta.env.VITE_BASE_URL;
+// VITE_API_URL is the preferred name for both local and Vercel deployments.
+// The two older names remain supported so existing Vercel environment
+// variables do not break after this change.
+const configuredBaseUrl =
+    import.meta.env.VITE_API_URL ||
+    (import.meta.env.PROD
+        ? import.meta.env.VITE_PRODUCTION_API_URL
+        : import.meta.env.VITE_BASE_URL);
 
-const baseUrl = (configuredBaseUrl || "http://localhost:4000")
+// The backend has its own Vercel deployment. This fallback prevents a
+// production build with a missing Vercel environment variable from attempting
+// to call localhost in the visitor's browser.
+const defaultBaseUrl = import.meta.env.PROD
+    ? "https://full-stack-ems-server.vercel.app"
+    : "http://localhost:4000";
+
+const baseUrl = (configuredBaseUrl || defaultBaseUrl)
     .trim()
-    .replace(/\/$/, "");
+    .replace(/\/(api)?\/?$/, "");
 
 const api = axios.create({
     baseURL: `${baseUrl}/api`
@@ -36,7 +45,9 @@ api.interceptors.response.use(
     (res) => res,
     (error) => {
         const status = error?.response?.status;
-        if (status === 401) {
+        // A failed login also returns 401, but it is not an expired session.
+        // Clear the session only when this request actually sent a JWT.
+        if (status === 401 && error?.config?.headers?.Authorization) {
             handleUnauthorized();
             toast.error('Session expired. Please sign in again');
             return Promise.reject(error);

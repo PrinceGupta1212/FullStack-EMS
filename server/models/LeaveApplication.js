@@ -9,6 +9,6 @@ const LeaveApplicationSchema = new mongoose.Schema({
     status:{type:String,enum:["PENDING","APPROVED","REJECTED"],default:"PENDING"},
 },{timestamps:true})
 
-const LeaveApplication = mongoose.model.LeaveApplication || mongoose.model("LeaveApplication",LeaveApplicationSchema);
+const LeaveApplication = mongoose.models.LeaveApplication || mongoose.model("LeaveApplication",LeaveApplicationSchema);
 
 export default LeaveApplication;
