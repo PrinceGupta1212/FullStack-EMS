@@ -12,9 +12,21 @@ import payslipRouter from "./routes/payslipRoutes.js";
 import dashboardRouter from "./routes/dashboardRoutes.js";
 import { serve } from "inngest/express";
 import { inngest, functions } from "./inngest/index.js"
+import mongoose from 'mongoose'
 
 const app = express()
 const PORT = process.env.PORT  ||  4000;
+
+// Startup configuration checks to surface missing environment variables
+const requiredEnv = [
+  'MONGODB_URI',
+  'JWT_SECRET',
+  'ADMIN_EMAIL',
+];
+const missing = requiredEnv.filter((k) => !process.env[k]);
+if (missing.length) {
+  console.warn('Warning: Missing required environment variables:', missing.join(', '));
+}
 //Middleware
 
 app.use(cors())
@@ -24,6 +36,10 @@ app.use(multer().none())
 
 //Routes
 app.get('/',(req,res) => res.send('server is running'))
+app.get('/health', (req, res) => {
+  const dbState = (mongoose.connection.readyState === 1) ? 'connected' : 'disconnected';
+  res.json({status: 'ok', db: dbState});
+})
 app.use('/api/auth',authRouter)
 app.use('/api/employees',employeesRouter)
 app.use('/api/profile',profileRouter)

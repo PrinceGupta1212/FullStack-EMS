@@ -21,7 +21,7 @@ const isAdmin = user?.role == "ADMIN";
 const fetchLeaves = useCallback(async() => {
 try {
   const res = await api.get('/leave')
-  setLeaves(res.data.data || [])
+  setLeaves(Array.isArray(res.data.data) ? res.data.data : [])
   if(res.data.employee?.isDeleted){
     setIsDeleted(true)
   }
@@ -38,7 +38,8 @@ useEffect(() => {
 
 if(loading) return <Loading /> 
 
-const approvedLeaves = leaves.filter((l) => l.status === "APPROVED" );
+const safeLeaves = Array.isArray(leaves) ? leaves : [];
+const approvedLeaves = safeLeaves.filter((l) => l.status === "APPROVED" );
 const sickCount = approvedLeaves.filter((l)=> l.type === "SICK").length;
 const casualCount = approvedLeaves.filter((l)=> l.type === "CASUAL").length;
 const annualCount = approvedLeaves.filter((l)=> l.type === "ANNUAL").length;
@@ -81,7 +82,7 @@ const leaveStats = [
           ))}
         </div>
       )}
-      <LeaveHistory leaves={leaves} isAdmin={isAdmin} onUpdate={fetchLeaves} />
+      <LeaveHistory leaves={safeLeaves} isAdmin={isAdmin} onUpdate={fetchLeaves} />
       <ApplyLeaveModal open={showModal} onClose={() => setShowModal(false)} onSuccess={fetchLeaves}/>
     </div>
   )

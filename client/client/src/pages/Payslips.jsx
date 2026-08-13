@@ -18,7 +18,7 @@ const Payslips = () => {
   const fetchPayslips = useCallback(async() => {
     try {
       const { data } = await api.get('/payslips')
-      setPayslips(data.data || [])
+      setPayslips(Array.isArray(data.data) ? data.data : [])
     } catch (error) {
       toast.error(error.response?.data?.error || 'Failed to load payslips')
     } finally {
@@ -34,7 +34,7 @@ const Payslips = () => {
    useEffect(() => {
     if (!isAdmin) return
     api.get('/employees')
-      .then(({ data }) => setEmployees(data))
+      .then(({ data }) => setEmployees(Array.isArray(data) ? data : []))
       .catch((error) => toast.error(error.response?.data?.error || 'Failed to load employees'))
   },[isAdmin])
 
@@ -49,7 +49,7 @@ if(loading) return <Loading />
       </div>
       {isAdmin && <GeneratePayslipForm employees={employees} onSuccess={fetchPayslips}/>}
      </div>
-     <PaySlipList payslips={payslips} isAdmin={isAdmin}/>
+     <PaySlipList payslips={Array.isArray(payslips) ? payslips : []} isAdmin={isAdmin}/>
     </div>
   )
 }

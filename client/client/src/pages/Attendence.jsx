@@ -15,7 +15,7 @@ const Attendence = () => {
   const fetchData = useCallback(async () => {
     try {
       const { data } = await api.get('/attendance')
-      setHistory(data.data || [])
+      setHistory(Array.isArray(data.data) ? data.data : [])
       setIsDeleted(Boolean(data.employee?.isDeleted))
     } catch (error) {
       toast.error(error.response?.data?.error || 'Failed to load attendance')
@@ -32,7 +32,8 @@ const Attendence = () => {
 
   const today = new Date()
   today.setHours(0,0,0,0)
-  const todayRecord = history.find((r)=> new Date(r.date).toDateString() === today.toDateString())
+  const safeHistory = Array.isArray(history) ? history : []
+  const todayRecord = safeHistory.find((r)=> new Date(r.date).toDateString() === today.toDateString())
 
  
   return (
@@ -51,8 +52,8 @@ const Attendence = () => {
 <CheckInButton todayRecord={todayRecord} onAction={fetchData}/>
 </div>
       )}
-      <AttendanceStats history={history}/>
-      <AttendanceHistory history={history} />
+      <AttendanceStats history={safeHistory}/>
+      <AttendanceHistory history={safeHistory} />
     </div>
   )
 }

@@ -4,6 +4,7 @@ import { Plus, Search, X } from 'lucide-react'
 import EmployeeCard from '../components/EmployeeCard'
 import EmployeeForm from '../components/EmployeeForm'
 import api from '../api/axios'
+import toast from 'react-hot-toast'
 
 const Employees = () => {
 
@@ -19,9 +20,14 @@ const Employees = () => {
    try {
     const url = selectDept ? `/employees?department=${encodeURIComponent(selectDept)}`: "/employees";
     const res = await api.get(url)
-    setEmployees(res.data)
+    setEmployees(Array.isArray(res.data) ? res.data : [])
+    if (!Array.isArray(res.data)) {
+      throw new Error('The server returned an invalid employee list')
+    }
    } catch (error) {
     console.error("failed to fetch employee")
+    setEmployees([])
+    toast.error(error.response?.data?.error || error.message || 'Failed to load employees')
    }finally{
     setLoading(false)
    }
@@ -30,7 +36,9 @@ const Employees = () => {
     fetchEmployees();
   },[fetchEmployees])
 
-  const filtered  =  employees.filter((emp) => `${emp.firstName} ${emp.lastName} ${emp.position}`.toLowerCase().includes(search.toLowerCase()))
+  const filtered = (Array.isArray(employees) ? employees : []).filter((emp) =>
+    `${emp.firstName} ${emp.lastName} ${emp.position}`.toLowerCase().includes(search.toLowerCase())
+  )
 
 
   return (
