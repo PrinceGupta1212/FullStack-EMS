@@ -8,8 +8,7 @@ const handleUnauthorized = () => {
 }
 
 // VITE_API_URL is the preferred name for both local and Vercel deployments.
-// The two older names remain supported so existing Vercel environment
-// variables do not break after this change.
+// The older names remain supported for existing deployments.
 const configuredBaseUrl =
     import.meta.env.VITE_API_URL ||
     (import.meta.env.PROD
@@ -23,12 +22,16 @@ const defaultBaseUrl = import.meta.env.PROD
     ? "https://full-stack-ems-server.vercel.app"
     : "http://localhost:4000";
 
+// Accept either a server URL or one ending in /api, and always create paths
+// such as /api/auth/login exactly once.
 const baseUrl = (configuredBaseUrl || defaultBaseUrl)
     .trim()
-    .replace(/\/(api)?\/?$/, "");
+    .replace(/\/+$/, '')
+    .replace(/\/api$/, '');
 
 const api = axios.create({
-    baseURL: `${baseUrl}/api`
+    baseURL: `${baseUrl}/api`,
+    timeout: 15000,
 })
 
 //Attach Auth token to all network requests

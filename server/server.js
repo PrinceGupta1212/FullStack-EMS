@@ -27,9 +27,26 @@ const missing = requiredEnv.filter((k) => !process.env[k]);
 if (missing.length) {
   console.warn('Warning: Missing required environment variables:', missing.join(', '));
 }
-//Middleware
 
-app.use(cors())
+// Leave CORS open by default to preserve the existing public-API behaviour.
+// For production, set CORS_ORIGINS to a comma-separated list of frontend URLs
+// (for example: https://my-app.vercel.app). Requests without an Origin header,
+// such as Vercel health checks, are always allowed.
+const allowedOrigins = (process.env.CORS_ORIGINS || '')
+  .split(',')
+  .map((origin) => origin.trim())
+  .filter(Boolean);
+
+app.use(cors({
+  origin(origin, callback) {
+    if (!origin || allowedOrigins.length === 0 || allowedOrigins.includes(origin)) {
+      return callback(null, true);
+    }
+    return callback(new Error('Origin is not allowed by CORS'));
+  },
+  methods: ['GET', 'HEAD', 'POST', 'PUT', 'PATCH', 'DELETE', 'OPTIONS'],
+  allowedHeaders: ['Content-Type', 'Authorization'],
+}));
 app.use(express.json())
 app.use(multer().none())
 
