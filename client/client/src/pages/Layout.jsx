@@ -4,6 +4,7 @@ import { Navigate, Outlet } from 'react-router-dom'
 import Sidebar from '../components/Sidebar'
 import { useAuth } from '../context/AuthContext'
 import Loading from '../components/Loading'
+import ChatWidget from '../components/chatbot/ChatWidget'
 const Layout = () => {
 
   const {user,loading} = useAuth()
@@ -18,6 +19,7 @@ const Layout = () => {
           <Outlet />
         </div>
       </main>
+       <ChatWidget />
     </div>
   )
 }
